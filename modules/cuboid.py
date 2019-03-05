@@ -15,15 +15,18 @@ class CuboidSurface(nn.Module):
     area = self.cuboidAreaModule(dims) # bs x 1 x 1
     dimsInv = dims.pow(-1)
     dimsInvNorm = dimsInv.sum(2).repeat(1, 1, 3)
-    normWeights = 3 * (dimsInv / dimsInvNorm)
+    normWeights = 3 * (dimsInv / dimsInvNorm)   #[32, 32, 3]
 
     widthWt, heightWt, depthWt = torch.chunk(normWeights, chunks=3, dim=2)
-    widthWt = widthWt.repeat(1, self.samplesPerFace, 1)
+    widthWt = widthWt.repeat(1, self.samplesPerFace, 1) #[32, 1600(32x50), 1]
     heightWt = heightWt.repeat(1, self.samplesPerFace, 1)
     depthWt = depthWt.repeat(1, self.samplesPerFace, 1)
 
-    sampleWt = torch.cat([widthWt, heightWt, depthWt], dim=1)
-    finalWt = (1/self.samplesPerFace) * (sampleWt * area)
+    sampleWt = torch.cat([widthWt, heightWt, depthWt], dim=1)  #[32, 4800, 1]
+    # sampleWt = sampleWt.squeeze(2)
+    # area = area.squeeze(2)
+    sampleWt = sampleWt[:,:150,:]
+    finalWt = (1/self.samplesPerFace) * (sampleWt * area)   # [32, 4800, 1] [32, 150, 1]
     return finalWt
 
 
@@ -64,13 +67,10 @@ class CuboidSurface(nn.Module):
 
     coeff = torch.cat([coeff_w, coeff_h, coeff_d], dim=1)
     coeff = Variable(coeff)
-    samples = self.sample(primShapes, coeff)
+    samples = self.sample(primShapes, coeff)  #[32, 150, 3]
     importance_weights = self.sample_wt_module(primShapes)
     return samples, importance_weights
 
-
-
-import pdb
 def test_cuboid_surface():
   N = 1
   P = 1

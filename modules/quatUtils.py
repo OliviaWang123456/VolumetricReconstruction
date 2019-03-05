@@ -27,7 +27,11 @@ def hamilton_product(q1, q2):
 
     q1q2_v1 = torch.sum(q1 * q2_permute, dim=2)
     q1_q2_prods.append(q1q2_v1)
+  
+  for i in range(len(q1_q2_prods)):
+    q1_q2_prods[i] = q1_q2_prods[i].unsqueeze(2)  ##modified
 
+  # import ipdb;ipdb.set_trace()
   q_ham = torch.cat(q1_q2_prods, dim=2)
   # q_ham = q_ham.view(q_size)
   return q_ham

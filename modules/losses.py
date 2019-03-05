@@ -31,6 +31,8 @@ def tsdf_transform(sample_points, part):
 
 def get_existence_weights(tsdf, part):
   e = part[:,:,11:12]
+  e = e.squeeze(2) #modified
+  # import ipdb; ipdb.set_trace()
   e = e.expand(tsdf.size())
   e = (1-e)*10
   return e
@@ -48,7 +50,12 @@ def tsdf_pred(sampledPoints, predParts):  ## coverage loss
     tsdfParts.append(tsdf)
     existence_weights.append(get_existence_weights(tsdf, predParts[i]))
 
+  for i in range(len(existence_weights)):
+    existence_weights[i] = existence_weights[i].unsqueeze(2) #modifided
+  for i in range(len(tsdfParts)):
+    tsdfParts[i] = tsdfParts[i].unsqueeze(2) #modifided
 
+  # import ipdb;ipdb.set_trace()
   existence_all = torch.cat(existence_weights, dim=2)
   tsdf_all = torch.cat(tsdfParts, dim=2) + existence_all
   tsdf_final = -1 * F.max_pool1d(-1 * tsdf_all, kernel_size=nParts)  # B x nP
@@ -57,8 +64,8 @@ def tsdf_pred(sampledPoints, predParts):  ## coverage loss
 
 def primtive_surface_samples(predPart, cuboid_sampler):
   # B x 1 x 10
-  shape = predPart[:, :, 0:3]  # B  x 1 x 3
-  probs = predPart[:,:,11:12] # B x 1 x 1
+  shape = predPart[:, :, 0:3]  # B  x 1 x 3 [32, 1, 3]
+  probs = predPart[:,:,11:12] # B x 1 x 1   [32, 1, 1]
   samples, imp_weights = cuboid_sampler.sample_points_cuboid(shape)
   probs = probs.expand(imp_weights.size())
   imp_weights = imp_weights * probs
@@ -72,7 +79,7 @@ def partComposition(predParts, cuboid_sampler):
   all_sampled_weights = []
   predParts = torch.chunk(predParts, nParts, 1)
   for i in range(nParts):
-    sampled_points, imp_weights = primtive_surface_samples(predParts[i], cuboid_sampler)
+    sampled_points, imp_weights = primtive_surface_samples(predParts[i], cuboid_sampler)  #32 1 12
     transformedSamples = transform_samples(sampled_points, predParts[i])  # B x nPs x 3
     all_sampled_points.append(transformedSamples)  # B x nPs x 3
     all_sampled_weights.append(imp_weights)
@@ -92,8 +99,10 @@ def transform_samples(samples, predParts):
 
 def normalize_weights(imp_weights):
   # B x nP x 1
-  totWeights = (torch.sum(imp_weights, dim=1) + 1E-6).repeat(1, imp_weights.size(1), 1)
-  norm_weights = imp_weights / totWeights
+  # totWeights = (torch.sum(imp_weights, dim=1) + 1E-6).repeat(1, imp_weights.size(1), 1) #[32, 1].repeat
+  # import ipdb; ipdb.set_trace()
+  totWeights = (torch.sum(imp_weights, dim=1) + 1E-6).unsqueeze(2).repeat(1, imp_weights.size(1), 1) #modified
+  norm_weights = imp_weights / totWeights   #[32, 3000, 1]    [1, 9600, 1]
   return norm_weights
 
 
@@ -101,7 +110,7 @@ def chamfer_loss(predParts, dataloader, cuboid_sampler):
   sampled_points, imp_weights = partComposition(predParts, cuboid_sampler)
   norm_weights = normalize_weights(imp_weights)
   tsdfLosses = dataloader.chamfer_forward(sampled_points)
-  weighted_loss = tsdfLosses * norm_weights  # B x nP x 1
+  weighted_loss = tsdfLosses * norm_weights.squeeze(2)  # B x nP x 1
   return torch.sum(weighted_loss, 1)
 
 

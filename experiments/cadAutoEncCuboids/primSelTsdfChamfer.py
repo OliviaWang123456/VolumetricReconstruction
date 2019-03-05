@@ -68,7 +68,7 @@ def train(dataloader, netPred, reward_shaper, optimizer, iter):
   tsdfGt = Variable(tsdfGt.cuda())
   sampledPoints = Variable(sampledPoints.cuda()) ## B x np x 3
   predParts, stocastic_actions = netPred.forward(inputVol) ## B x nPars*11
-  predParts = predParts.view(predParts.size(0), params.nParts, 12)
+  predParts = predParts.view(predParts.size(0), params.nParts, 12)   #the primitives reconstructed
   # pdb.set_trace()
   # pdb.set_trace()
   optimizer.zero_grad()
@@ -81,7 +81,7 @@ def train(dataloader, netPred, reward_shaper, optimizer, iter):
   loss = coverage_b + params.chamferLossWt*consistency_b
   rewards = []
   mean_reward = 0
-  if params.prune ==1:
+  if params.prune ==1: #修剪
     reward = -1*loss.view(-1,1).data
     for i, action in enumerate(stocastic_actions):
       shaped_reward = reward - params.nullReward*torch.sum(action.data)
@@ -105,8 +105,8 @@ def train(dataloader, netPred, reward_shaper, optimizer, iter):
   loss = torch.mean(loss)
   loss.backward()
   optimizer.step()
-
-  return loss.data[0], coverage.data[0], consistency.data[0], mean_reward
+  # import ipdb; ipdb.set_trace()
+  return loss.item(), coverage.item(), consistency.item(), mean_reward
 
 
 import torch.nn as nn

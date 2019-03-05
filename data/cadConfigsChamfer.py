@@ -69,7 +69,7 @@ class SimpleCadData(object):
     self.all_closetPoints = torch.stack(self.all_closetPoints).unsqueeze(1).cuda()
     self.all_surfaceSamples = torch.stack(self.all_surfaceSamples).cuda()
 
-  def reloadShapes(self):
+  def reloadShapes(self): #
     ids = []
     for ix in range(self.batchSize):
       self.startModelIndex = np.random.randint(0, len(self.modelNames))
@@ -93,10 +93,10 @@ class SimpleCadData(object):
     # pdb.set_trace()
     for b in range(self.batchSize):
       nPointsTot = self.loadedSurfaceSamples[b].size(0)
-      sample_ids = torch.LongTensor(np.random.randint(0, nPointsTot, self.nSamplePoints)).cuda()
+      sample_ids = torch.LongTensor(np.random.randint(0, nPointsTot, self.nSamplePoints)).cuda() #0~nPointsTot smaplepoint 
       outSamplePoints.append(self.loadedSurfaceSamples[b][sample_ids])
     outSamplePoints = torch.stack(outSamplePoints)
-    output = [self.loadedShapes, self.outSampleTsfds, outSamplePoints, self.loadedCPs]
+    output = [self.loadedShapes, self.outSampleTsfds, outSamplePoints, self.loadedCPs]    #closet point
     return output
 
   def forwardTest(self):
@@ -123,7 +123,7 @@ class SimpleCadData(object):
       inds = self.gridSize*self.gridSize*inds[:,0]  + self.gridSize*inds[:,1] + inds[:,2]
       cp = loadedCPs[b,0].view(-1,3)
       cp = cp[inds]
-      voxels = Variable(self.loadedVoxels[b][0].view(-1))
+      voxels = Variable(self.loadedVoxels[b][0].view(-1)) #TODO
       voxels = voxels[inds]
       diff = (cp - queryPoints[b].view(-1,3)).pow(2).sum(1)
       queryDiffs.append((-voxels+1) * diff)

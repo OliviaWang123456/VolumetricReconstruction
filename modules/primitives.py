@@ -68,9 +68,11 @@ class QuatPredModule(nn.Module):
     x = normalize(x)
     return x
 
-
 def normalize(x):
-  x  = x/ (1E-12 + torch.norm(x, dim=1, p=2).expand(x.size()))
+  # import pdb;pdb.set_trace()
+  xc = 1E-12 + torch.norm(x, dim=1, p=2).unsqueeze(1)
+  xt = xc.expand(x.size())
+  x  = x / xt
   return x
 
 class TransPredModule(nn.Module):
@@ -80,6 +82,7 @@ class TransPredModule(nn.Module):
     # transLayer.apply(nUtils.weightsInit)
     transLayer.note = 'transPred'
     self.gridBound = params.gridBound
+
     biasTerms = biasTerms
     try:
       transLayer.bias.data = biasTerms.trans.clone()
@@ -115,13 +118,15 @@ class ProbPredModule(nn.Module):
     x = self.probLayer(feature)
     x = x * self.probLrDecay
     x = self.sigmoid(x)
-
     stocastic_outputs = x.view(feature.size(0), -1).bernoulli()
     # x = Variable(stocastic_outputs.data.clone())
+    # import ipdb;
     selections = stocastic_outputs
     if self.prune ==0:
       selections = Variable(torch.FloatTensor(x.size()).fill_(1).type_as(x.data))
-    return torch.cat([x ,selections], dim=1), stocastic_outputs
+    
+    # import ipdb; ipdb.set_trace()  #modified
+    return torch.cat([x ,selections], dim=1).squeeze(2).squeeze(2).squeeze(2), stocastic_outputs
 
 
 class PrimitivePredModule(nn.Module):
